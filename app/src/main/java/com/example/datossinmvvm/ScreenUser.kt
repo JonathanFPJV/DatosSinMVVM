@@ -86,6 +86,17 @@ fun ScreenUser() {
         ) {
             Text("Listar Usuarios", fontSize=16.sp)
         }
+        Button(
+            onClick = {
+                val user = User(0,firstName, lastName)
+                coroutineScope.launch {
+                    val data = getUsers( dao = dao)
+                    dataUser.value = data
+                }
+            }
+        ) {
+            Text("Eliminar ultimo usuario", fontSize=16.sp)
+        }
         Text(
             text = dataUser.value, fontSize = 20.sp
         )
@@ -123,3 +134,14 @@ suspend fun AgregarUsuario(user: User, dao:UserDao): Unit {
     }
     //}
 }
+
+suspend fun deleteLastUser(userDao: UserDao) {
+    // Obtiene el último usuario añadido
+    val lastUser = userDao.ultimouser()
+
+    // Si hay un usuario, lo elimina
+    if (lastUser != null) {
+        userDao.borraruser(lastUser.uid)
+    }
+}
+

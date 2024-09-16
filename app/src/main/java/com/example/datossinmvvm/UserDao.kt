@@ -11,4 +11,9 @@ interface UserDao {
 
     @Insert
     suspend fun insert(user: User)
+
+    @Query("SELECT * FROM User ORDER BY uid DESC LIMIT 1")
+    suspend fun ultimouser(): User?
+    @Query("DELETE FROM User WHERE uid = :userID")
+    suspend fun borraruser(userID: Int)
 }
