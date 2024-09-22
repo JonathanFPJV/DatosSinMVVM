@@ -70,5 +70,5 @@ dependencies {
     implementation("androidx.room:room-runtime:$room_version")
     kapt("androidx.room:room-compiler:$room_version")
     implementation("androidx.room:room-ktx:2.5.0")
-
+    implementation ("androidx.compose.material3:material3:1.1.0")
 }
