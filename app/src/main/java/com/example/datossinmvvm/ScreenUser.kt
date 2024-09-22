@@ -39,107 +39,120 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen() {
+    val context = LocalContext.current
+    val db = crearDatabase(context)
+    val dao = db.userDao()
+
+    // Estado a HomeScreen
+    var firstName by remember { mutableStateOf("") }
+    var lastName by remember { mutableStateOf("") }
+    var dataUser by remember { mutableStateOf("") }
+
+    val coroutineScope = rememberCoroutineScope()
+
     Scaffold(
         topBar = {
             TopBar(
-                onAddClick = {},
-                onListClick = {}
+                // Pasar los valores de firstName y lastName desde la topBar
+                onAddClick = {
+                    coroutineScope.launch {
+                        val user = User(0, firstName, lastName)
+                        AgregarUsuario(user = user, dao = dao)
+                        firstName = "" // Limpiar después de agregar
+                        lastName = ""  // Limpiar después de agregar
+                    }
+                },
+                onListClick = {
+                    coroutineScope.launch {
+                        val data = getUsers(dao)
+                        dataUser = data
+                    }
+                }
             )
         },
         floatingActionButton = {
             FloatingActionButtonComponent(onDeleteClick = {
-                // Acción para eliminar un elemento
+                coroutineScope.launch {
+                    deleteLastUser(dao)
+                    val data = getUsers(dao)
+                    dataUser = data
+                }
             })
         },
         content = { padding ->
-            // Llamar a ScreenUser y pasarle el padding
-            ScreenUser(padding=padding,)
+            // Pasar los datos y acciones necesarias a ScreenUser
+            ScreenUser(
+                padding = padding,
+                firstName = firstName,
+                lastName = lastName,
+                onFirstNameChange = { firstName = it },
+                onLastNameChange = { lastName = it },
+                onAddUser = {
+                    coroutineScope.launch {
+                        val user = User(0, firstName, lastName)
+                        AgregarUsuario(user = user, dao = dao)
+                        firstName = ""
+                        lastName = ""
+                    }
+                },
+                onListUsers = {
+                    coroutineScope.launch {
+                        val data = getUsers(dao)
+                        dataUser = data
+                    }
+                },
+                dataUser = dataUser
+            )
         }
     )
 }
 
+
 @Composable
 fun ScreenUser(
     padding: PaddingValues,
+    firstName: String,
+    lastName: String,
+    onFirstNameChange: (String) -> Unit,
+    onLastNameChange: (String) -> Unit,
+    onAddUser: () -> Unit,
+    onListUsers: () -> Unit,
+    dataUser: String
 ) {
-    val context = LocalContext.current
-    var db: UserDatabase
-    var id        by remember { mutableStateOf("") }
-    var firstName by remember { mutableStateOf("") }
-    var lastName  by remember { mutableStateOf("") }
-    var dataUser  = remember { mutableStateOf("") }
-
-    db = crearDatabase(context)
-
-    val dao = db.userDao()
-
-    val coroutineScope = rememberCoroutineScope()
-
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-    ){
+            .padding(padding)
+    ) {
         Spacer(Modifier.height(50.dp))
         TextField(
-            value = id,
-            onValueChange = { id = it },
-            label = { Text("ID (solo lectura)") },
-            readOnly = true,
-            singleLine = true
-        )
-        TextField(
             value = firstName,
-            onValueChange = { firstName = it },
+            onValueChange = onFirstNameChange,
             label = { Text("First Name: ") },
             singleLine = true
         )
         TextField(
             value = lastName,
-            onValueChange = { lastName = it },
+            onValueChange = onLastNameChange,
             label = { Text("Last Name:") },
             singleLine = true
         )
         Button(
-            onClick = {
-                val user = User(0,firstName, lastName)
-                coroutineScope.launch {
-                    AgregarUsuario(user = user, dao = dao)
-                }
-                firstName = ""
-                lastName = ""
-            }
+            onClick = onAddUser
         ) {
-            Text("Agregar Usuario", fontSize=16.sp)
+            Text("Agregar Usuario", fontSize = 16.sp)
         }
         Button(
-            onClick = {
-                val user = User(0,firstName, lastName)
-                coroutineScope.launch {
-                    val data = getUsers( dao = dao)
-                    dataUser.value = data
-                }
-            }
+            onClick = onListUsers
         ) {
-            Text("Listar Usuarios", fontSize=16.sp)
-        }
-        Button(
-            onClick = {
-                val user = User(0,firstName, lastName)
-                coroutineScope.launch {
-                    deleteLastUser(dao)
-                    val data = getUsers(dao = dao)
-                    dataUser.value = data
-                }
-            }
-        ) {
-            Text("Eliminar ultimo usuario", fontSize=16.sp)
+            Text("Listar Usuarios", fontSize = 16.sp)
         }
         Text(
-            text = dataUser.value, fontSize = 20.sp
+            text = dataUser, fontSize = 20.sp
         )
     }
 }
+
 
 @Composable
 fun crearDatabase(context: Context): UserDatabase {
@@ -192,19 +205,16 @@ fun FloatingActionButtonComponent(onDeleteClick: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar(onAddClick: () -> Unit, onListClick: () -> Unit) {
-    // Usamos TopAppBar de Material 3
     TopAppBar(
         title = { Text(text = "Gestión de Nombres", color = Color.White) },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.primary
         ),
         actions = {
-            // Icono para agregar un nuevo nombre
-            IconButton(onClick = { onAddClick() }) {
+            IconButton(onClick = onAddClick) {
                 Icon(Icons.Default.Add, contentDescription = "Agregar Nombre", tint = Color.White)
             }
-            // Icono para listar los nombres
-            IconButton(onClick = { onListClick() }) {
+            IconButton(onClick = onListClick) {
                 Icon(Icons.Default.List, contentDescription = "Listar Nombres", tint = Color.White)
             }
         }
